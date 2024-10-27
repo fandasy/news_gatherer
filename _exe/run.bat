@@ -1,0 +1,1 @@
+start v0.0.1.exe -tg-bot-token <token> -vk-bot-token <token>

@@ -1,0 +1,7 @@
+{
+    "tgBotHost": "api.telegram.org",
+    "vkApiHost": "api.vk.com",
+    "vkApiVersion": "5.131",
+    "PSQLconnection": "user=username dbname=db password=pass host=localhost port=5432 sslmode=disable",
+    "batchSize": 100
+}
