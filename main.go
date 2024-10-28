@@ -18,12 +18,13 @@ import (
 	"telegramBot/storage/psql"
 )
 
-type BotToken struct {
-	TgToken string
-	VkToken string
+type startObjects struct {
+	jsonFilePath string
+	tgToken      string
+	vkToken      string
 }
 
-type JSONData struct {
+type jsonData struct {
 	TgBotHost    string `json:"tgBotHost"`
 	VkApiHost    string `json:"vkApiHost"`
 	VkApiVersion string `json:"vkApiVersion"`
@@ -31,20 +32,17 @@ type JSONData struct {
 	BatchSize    int    `json:"batchSize"`
 }
 
-const jsonFilePath = "data.json"
-
-// batchSize - updatesBatchLimit, between 1 - 100, defaults to 100
-
 func main() {
 
-	// logs
+	// logging
 	if err := l.Start(); err != nil {
 		log.Print(err)
 	}
 
-	var launchData JSONData
+	startObjects := mustGetStartObjects()
 
-	openJSONfiles(jsonFilePath, &launchData)
+	var launchData jsonData
+	mustOpenJsonFiles(startObjects.jsonFilePath, &launchData)
 
 	s, err := psql.New(launchData.ConnStr)
 	if err != nil {
@@ -55,11 +53,9 @@ func main() {
 		log.Fatal("can't init storage: ", err)
 	}
 
-	tokens := mustToken()
-
 	eventsProcessor := telegram.New(
-		tgClient.New(launchData.TgBotHost, tokens.TgToken),
-		vkClient.New(launchData.VkApiHost, launchData.VkApiVersion, tokens.VkToken),
+		tgClient.New(launchData.TgBotHost, startObjects.tgToken),
+		vkClient.New(launchData.VkApiHost, launchData.VkApiVersion, startObjects.vkToken),
 		s,
 	)
 
@@ -72,6 +68,7 @@ func main() {
 		}
 	}()
 
+	// Program Completion
 	stop := make(chan os.Signal, 1)
 	signal.Notify(stop, syscall.SIGTERM, syscall.SIGINT)
 
@@ -81,7 +78,7 @@ func main() {
 	eventconsumer.Stop()
 }
 
-func openJSONfiles(filePath string, launchData *JSONData) {
+func mustOpenJsonFiles(filePath string, launchData *jsonData) {
 	file, err := os.Open(filePath)
 	if err != nil {
 		log.Fatal("Failed to open JSON file: ", err)
@@ -98,13 +95,19 @@ func openJSONfiles(filePath string, launchData *JSONData) {
 	}
 }
 
-func mustToken() *BotToken {
+func mustGetStartObjects() *startObjects {
 
 	var (
-		tgToken string
-		vkToken string
+		jsonFilePath string
+		tgToken      string
+		vkToken      string
 	)
 
+	flag.StringVar(&jsonFilePath,
+		"config-path",
+		"",
+		"path for access to config file",
+	)
 	flag.StringVar(&tgToken,
 		"tg-bot-token",
 		"",
@@ -117,13 +120,18 @@ func mustToken() *BotToken {
 	)
 	flag.Parse()
 
+	if jsonFilePath == "" {
+		jsonFilePath = os.Getenv("CONFIG_PATH")
+		if jsonFilePath == "" {
+			log.Fatal("path is not specified")
+		}
+	}
 	if tgToken == "" {
 		tgToken = os.Getenv("TG_TOKEN")
 		if tgToken == "" {
 			log.Fatal("tgToken is not specified")
 		}
 	}
-
 	if vkToken == "" {
 		vkToken = os.Getenv("VK_TOKEN")
 		if vkToken == "" {
@@ -131,8 +139,9 @@ func mustToken() *BotToken {
 		}
 	}
 
-	return &BotToken{
-		TgToken: tgToken,
-		VkToken: vkToken,
+	return &startObjects{
+		jsonFilePath: jsonFilePath,
+		tgToken:      tgToken,
+		vkToken:      vkToken,
 	}
 }

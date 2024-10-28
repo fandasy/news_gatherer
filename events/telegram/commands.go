@@ -37,7 +37,7 @@ func (p *Processor) doCmd(ctx context.Context, text string, chatID int, username
 	case text == AllNewsCmd:
 		return p.getAllNews(ctx, chatID, username)
 	case strings.HasPrefix(text, NewsCertainCmd):
-		return p.getСertainNews(ctx, chatID, username, text)
+		return p.getConcreteNews(ctx, chatID, username, text)
 	case strings.HasPrefix(text, RemoveCmd):
 		return p.removePage(ctx, chatID, text, username)
 	case isAddCmd(text):
@@ -66,8 +66,6 @@ func (p *Processor) defineAssembler(ctx context.Context, chatID int, pageURL str
 	default:
 		return p.tg.SendMessage(chatID, msgNotContainNewsFeed)
 	}
-
-	return nil
 }
 
 func (p *Processor) savePage(ctx context.Context, chatID int, pageURL string, username string, assembler string) (err error) {
@@ -162,30 +160,23 @@ func (p *Processor) getAllNews(ctx context.Context, chatID int, username string)
 		return p.tg.SendMessage(chatID, msgNoSavedPages)
 	}
 
-	for _, item := range newsList.News {
-
-		newsArr, err := p.getNews(item)
-		if err != nil {
+	for _, newsInfo := range newsList.News {
+		if err := p.getNewsAndSendMessage(chatID, newsInfo); err != nil {
 			log.Println(err)
-			continue
-		}
-		for _, news := range newsArr {
-			if err := p.tg.SendMessage(chatID, news); err != nil {
-				log.Println(err)
-			}
 		}
 	}
 
 	return nil
 }
 
-func (p *Processor) getСertainNews(ctx context.Context, chatID int, username string, cmdText string) (err error) {
+func (p *Processor) getConcreteNews(ctx context.Context, chatID int, username string, cmdText string) (err error) {
 	defer func() { err = e.Wrap("can't do command: get news", err) }()
 
 	filter := strings.TrimPrefix(cmdText, NewsCertainCmd)
 
 	switch {
 	case strings.HasPrefix(filter, VkGroupPath):
+
 		page := &storage.Page{
 			URL:      filter,
 			UserName: username,
@@ -200,18 +191,17 @@ func (p *Processor) getСertainNews(ctx context.Context, chatID int, username st
 			return p.tg.SendMessage(chatID, msgNoSavedPages)
 		}
 
-		newsArr, err := p.vk.GetNews(strings.TrimPrefix(filter, VkGroupPath))
-		if err != nil {
+		newsInfo := storage.News{
+			URL:       filter,
+			Assembler: "VK",
+		}
+
+		if err := p.getNewsAndSendMessage(chatID, newsInfo); err != nil {
 			return err
 		}
 
-		for _, news := range newsArr {
-			if err := p.tg.SendMessage(chatID, news); err != nil {
-				log.Println(err)
-			}
-		}
-
 	case filterIsAssembler(filter, "VK", "RSS"):
+
 		page := &storage.Page{
 			UserName:  username,
 			Assembler: filter,
@@ -225,22 +215,14 @@ func (p *Processor) getСertainNews(ctx context.Context, chatID int, username st
 			return p.tg.SendMessage(chatID, msgNoSavedPages)
 		}
 
-		for _, item := range newsList.News {
-
-			newsArr, err := p.getNews(item)
-			if err != nil {
+		for _, newsInfo := range newsList.News {
+			if err := p.getNewsAndSendMessage(chatID, newsInfo); err != nil {
 				log.Println(err)
-				continue
-			}
-
-			for _, news := range newsArr {
-				if err := p.tg.SendMessage(chatID, news); err != nil {
-					log.Println(err)
-				}
 			}
 		}
 
 	case services.ValidateFeedURL(filter):
+
 		page := &storage.Page{
 			URL:      filter,
 			UserName: username,
@@ -255,12 +237,12 @@ func (p *Processor) getСertainNews(ctx context.Context, chatID int, username st
 			return p.tg.SendMessage(chatID, msgNoSavedPages)
 		}
 
-		newsArr, err := services.RSSParsing(filter)
+		parsedNewsArr, err := services.RSSParsing(filter)
 		if err != nil {
 			return err
 		}
 
-		for _, news := range newsArr {
+		for _, news := range parsedNewsArr {
 			if err := p.tg.SendMessage(chatID, news); err != nil {
 				log.Println(err)
 			}
@@ -273,34 +255,49 @@ func (p *Processor) getСertainNews(ctx context.Context, chatID int, username st
 	return nil
 }
 
+func (p *Processor) getNewsAndSendMessage(chatID int, newsInfo storage.News) error {
+	parsedNewsArr, err := p.getNews(newsInfo)
+	if err != nil {
+		return err
+	}
+
+	for _, news := range parsedNewsArr {
+		if err := p.tg.SendMessage(chatID, news); err != nil {
+			log.Println(err)
+		}
+	}
+
+	return nil
+}
+
+func (p *Processor) getNews(item storage.News) ([]string, error) {
+	switch item.Assembler {
+	case "VK":
+		parsedNewsArr, err := p.vk.GetNews(strings.TrimPrefix(item.URL, VkGroupPath))
+		if err != nil {
+			return nil, err
+		}
+
+		return parsedNewsArr, nil
+
+	case "RSS":
+		parsedNewsArr, err := services.RSSParsing(item.URL)
+		if err != nil {
+			return nil, err
+		}
+
+		return parsedNewsArr, nil
+	}
+
+	return nil, nil
+}
+
 func (p *Processor) sendHelp(chatID int) error {
 	return p.tg.SendMessage(chatID, msgHelp)
 }
 
 func (p *Processor) sendHello(chatID int) error {
 	return p.tg.SendMessage(chatID, msgHello)
-}
-
-func (p *Processor) getNews(item storage.News) ([]string, error) {
-	switch item.Assembler {
-	case "VK":
-		newsArr, err := p.vk.GetNews(strings.TrimPrefix(item.URL, VkGroupPath))
-		if err != nil {
-			return nil, err
-		}
-
-		return newsArr, nil
-
-	case "RSS":
-		newsArr, err := services.RSSParsing(item.URL)
-		if err != nil {
-			return nil, err
-		}
-
-		return newsArr, nil
-	}
-
-	return nil, nil
 }
 
 func isAddCmd(text string) bool {

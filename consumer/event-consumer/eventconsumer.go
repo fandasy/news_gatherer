@@ -63,6 +63,7 @@ func (c *Consumer) Start() error {
 
 func Stop() {
 	stopSignal = true
+	time.Sleep(5 * time.Second)
 }
 
 func (c *Consumer) handleEvents(eventsArr []events.Event) error {

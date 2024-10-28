@@ -1,1 +1,1 @@
-start v0.0.1.exe -tg-bot-token <token> -vk-bot-token <token>
+start v1.0.1.exe -config-path data.json -tg-bot-token <token> -vk-bot-token <token>
