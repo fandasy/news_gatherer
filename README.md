@@ -28,10 +28,10 @@
 
 ---
 ### Для запуска бота существует два варианта:
-- запустить в консоли с флагами: -tg-bot-token, -vk-bot-token
-- Использовать переменные среды: TG_TOKEN, VK_TOKEN
+- запустить в консоли с флагами: -config-path -tg-bot-token, -vk-bot-token
+- Использовать переменные среды: CONFIG_PATH, TG_TOKEN, VK_TOKEN
 
 
 ```
-start name.exe -tg-bot-token <token> -vk-bot-token <token>
+start name.exe -config-path data.json -tg-bot-token <token> -vk-bot-token <token>
 ```
