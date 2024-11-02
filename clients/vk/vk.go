@@ -107,31 +107,34 @@ func vkParsing(news []Post) []string {
 	var result []string
 
 	for _, item := range news {
+
 		var media string
+
 		for _, attachment := range item.Media {
+
 			if attachment.Photo != nil {
-				media += `
-  Photo: ` + attachment.Photo.Sizes[0].URL + `
-  `
+				media += "\n  Photo: " + attachment.Photo.Sizes[0].URL
 			}
+
 			if attachment.Video != nil {
-				media += `
-  Video: ` + attachment.Video.Image[0].URL + `
-  Описание видео: ` + attachment.Video.Description + `
-  `
+				media +=
+					"\n  Video: " + attachment.Video.Image[0].URL +
+						"\n  Описание видео: " + attachment.Video.Description
 			}
+
 			if attachment.Audio != nil {
-				media += `
-  Название аудио: ` + attachment.Audio.Title + `
-  ` + attachment.Audio.Artist + `
-  Audio: ` + attachment.Audio.URL + `
-  `
+				media +=
+					"\n  Название аудио: " + attachment.Audio.Title +
+						"\n  " + attachment.Audio.Artist +
+						"\n  Audio: " + attachment.Audio.URL
 			}
+
 		}
-		result = append(result, `
-- Заголовок: `+item.Text+media+`
-  Дата публикации: `+time.Unix(item.Date, 0).Format("2 January 2006 15:04")+`
-`)
+		result = append(result,
+			"-Заголовок: "+item.Text+
+				media+
+				"\n  Дата публикации: "+time.Unix(item.Date, 0).Format("2 January 2006 15:04"),
+		)
 	}
 
 	return result

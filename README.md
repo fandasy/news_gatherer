@@ -1,12 +1,13 @@
 ### Приветствие
 Привет, читатель. Это мой первый проект, связанный с телеграм-ботом, предполагаться что этот проект будет использоваться как шаблон для чего то более полезного : )
 
-### Начальный функционал:
+### Функционал:
 - Проводит валидацию всех кинутых в чат ссылок, и сохраняет их если они её прошли
 - Вывод всех сохранённых ссылок на новостные медиа
 - Удаление ссылок
 - Вывод 10 (искусственное ограничение) новостных блоков с каждой новостной ленты
 - Вывод с определённой страницы или платформы (VK, RSS)
+- Пересказ новостей с RSS ленты
 
 В данной версии поддерживаются только VK и RSS новостные ленты
 
@@ -23,15 +24,16 @@
 - "tgBotHost": "api.telegram.org",
 - "vkApiHost": "api.vk.com",
 - "vkApiVersion": "5.131",
+- "yaGptHost": "300.ya.ru",
 - "PSQLconnection": "user=username dbname=db password=pass host=localhost port=5432 sslmode=disable",
 - "batchSize": 100 // batchSize — лимит обновлений Telegram бота, от 1 до 100, по умолчанию 100
 
 ---
 ### Для запуска бота существует два варианта:
-- запустить в консоли с флагами: -tg-bot-token, -vk-bot-token
-- Использовать переменные среды: TG_TOKEN, VK_TOKEN
+- Запустить в консоли с флагами: -config-path, -tg-bot-token, -vk-bot-token, -ya-gpt-token
+- Использовать переменные среды: CONFIG_PATH, TG_TOKEN, VK_TOKEN, YA_GPT_TOKEN
 
 
 ```
-start name.exe -tg-bot-token <token> -vk-bot-token <token>
+start name.exe -config-path data.json -tg-bot-token <token> -vk-bot-token <token> -ya-gpt-token <token>
 ```

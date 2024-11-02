@@ -9,6 +9,7 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+	"telegramBot/clients/yagpt"
 
 	tgClient "telegramBot/clients/telegram"
 	vkClient "telegramBot/clients/vk"
@@ -22,20 +23,21 @@ type startObjects struct {
 	jsonFilePath string
 	tgToken      string
 	vkToken      string
+	yaGptToken   string
 }
 
 type jsonData struct {
 	TgBotHost    string `json:"tgBotHost"`
 	VkApiHost    string `json:"vkApiHost"`
 	VkApiVersion string `json:"vkApiVersion"`
+	YaGptHost    string `json:"yaGptHost"`
 	ConnStr      string `json:"PSQLconnection"`
 	BatchSize    int    `json:"batchSize"`
 }
 
 func main() {
 
-	// logging
-	if err := l.Start(); err != nil {
+	if err := l.LoggingStart(); err != nil {
 		log.Print(err)
 	}
 
@@ -44,19 +46,20 @@ func main() {
 	var launchData jsonData
 	mustOpenJsonFiles(startObjects.jsonFilePath, &launchData)
 
-	s, err := psql.New(launchData.ConnStr)
+	storage, err := psql.New(launchData.ConnStr)
 	if err != nil {
 		log.Fatal("can't connect to storage: ", err)
 	}
 
-	if err := s.Init(context.TODO()); err != nil {
+	if err := storage.Init(context.TODO()); err != nil {
 		log.Fatal("can't init storage: ", err)
 	}
 
 	eventsProcessor := telegram.New(
 		tgClient.New(launchData.TgBotHost, startObjects.tgToken),
 		vkClient.New(launchData.VkApiHost, launchData.VkApiVersion, startObjects.vkToken),
-		s,
+		yagpt.New(launchData.YaGptHost, startObjects.yaGptToken),
+		storage,
 	)
 
 	go func() {
@@ -101,6 +104,7 @@ func mustGetStartObjects() *startObjects {
 		jsonFilePath string
 		tgToken      string
 		vkToken      string
+		yaGptToken   string
 	)
 
 	flag.StringVar(&jsonFilePath,
@@ -117,6 +121,11 @@ func mustGetStartObjects() *startObjects {
 		"vk-bot-token",
 		"",
 		"token for access to vk bot",
+	)
+	flag.StringVar(&yaGptToken,
+		"ya-gpt-token",
+		"",
+		"token for access to yaGpt token",
 	)
 	flag.Parse()
 
@@ -138,10 +147,17 @@ func mustGetStartObjects() *startObjects {
 			log.Fatal("vkToken is not specified")
 		}
 	}
+	if yaGptToken == "" {
+		yaGptToken = os.Getenv("YA_GPT_TOKEN")
+		if yaGptToken == "" {
+			log.Fatal("yaGptToken is not specified")
+		}
+	}
 
 	return &startObjects{
 		jsonFilePath: jsonFilePath,
 		tgToken:      tgToken,
 		vkToken:      vkToken,
+		yaGptToken:   yaGptToken,
 	}
 }

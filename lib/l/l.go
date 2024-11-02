@@ -9,7 +9,7 @@ import (
 	"time"
 )
 
-func Start() error {
+func LoggingStart() error {
 	logDir := "logs"
 
 	if _, err := os.Stat(logDir); os.IsNotExist(err) {

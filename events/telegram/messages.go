@@ -5,36 +5,38 @@ import (
 	"strings"
 )
 
-const msgHelp = `I can save and preserve your news pages. I can also offer them for you to read. 
+const msgHelp = `Я могу сохранять и оберегать ваши новостные страницы. Я также могу предложить их вам для чтения. 
 
-To save a page, just send me a link to it.
-Supported pages: VK, RSS, XML
+Чтобы сохранить страницу, просто пришлите мне ссылку на нее.
+Поддерживаемые страницы: VK, RSS, XML
 
-To view the entire list of saved pages, send me the /list command.
+Чтобы просмотреть весь список сохраненных страниц, отправьте мне команду /list.
 
-To remove a page from the list, send me the /rm pageURL command.
+Чтобы удалить страницу из списка, отправьте мне команду /rm pageURL.
 
-To display news from all pages, send me the /allnews command.
+Чтобы отобразить новости со всех страниц, отправьте мне команду /allnews.
 
-To display news from a specific page or a page from a specific platform, send me /news filter
-Examples: 
+Чтобы отобразить новости с определенной страницы или страницы с определенной платформы, отправьте мне команду /news filter
+Примеры: 
  - /news https://lenta.ru/rss
  - /news https://vk.com/club228003824
  - /news VK
  - /news RSS`
 
-const msgHello = "Hi there! \n\n" + msgHelp
+const msgHello = "Привет! \n\n" + msgHelp
 
 const (
-	msgUnknownCommand     = "Unknown command"
-	msgNoSavedPages       = "You have no saved pages"
-	msgNoSavedPagesRm     = "You don't have a saved page: "
-	msgSaved              = "Saved!"
-	msgRemove             = "Removed!"
-	msgAlreadyExists      = "You have already have this page in your list"
-	msgNotContainNewsFeed = "The site does not contain a news feed or does not contain RSS"
-	msgTypeOrPageNotExist = "This type or page doesn't exist"
-	msgNotValidateGroup   = "The group has not been validated, perhaps it does not exist or is closed"
+	msgUnknownCommand      = "Неизвестная команда"
+	msgNoSavedPages        = "У вас нет сохраненных страниц"
+	msgNoSavedPagesRm      = "У вас нет сохраненной страницы: "
+	msgSaved               = "Сохранено!"
+	msgRemove              = "Удалено!"
+	msgAlreadyExists       = "У вас уже есть эта страница в списке"
+	msgNotContainNewsFeed  = "Сайт не содержит ленту новостей или не содержит RSS"
+	msgTypeOrPageNotExist  = "Этот тип или страница не существуют"
+	msgNotValidateGroup    = "Группа не прошла валидацию, возможно, она не существует или закрыта"
+	msgImpossibleRetelling = "Невозможно пересказать"
+	msgRetellingStarted    = "Пересказ начат"
 )
 
 func generateListMsg(pages []string, count int) string {

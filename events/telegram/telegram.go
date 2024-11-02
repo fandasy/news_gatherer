@@ -3,23 +3,29 @@ package telegram
 import (
 	"context"
 	"errors"
+
 	"telegramBot/clients/telegram"
 	"telegramBot/clients/vk"
+	"telegramBot/clients/yagpt"
 	"telegramBot/events"
 	"telegramBot/lib/e"
+	"telegramBot/lib/shortener"
 	"telegramBot/storage"
 )
 
 type Processor struct {
 	tg      *telegram.Client
 	vk      *vk.Client
+	yaGpt   *yagpt.Client
 	offset  int
 	storage storage.Storage
+	urlsMap *shortener.UrlsMap
 }
 
 type Meta struct {
-	ChatID   int
-	Username string
+	ChatID          int
+	Username        string
+	CallbackQueryID string
 }
 
 var (
@@ -27,11 +33,13 @@ var (
 	ErrUnknownMetaType  = errors.New("unknown meta type")
 )
 
-func New(tgClient *telegram.Client, vkClient *vk.Client, storage storage.Storage) *Processor {
+func New(tgClient *telegram.Client, vkClient *vk.Client, yaGptClient *yagpt.Client, storage storage.Storage) *Processor {
 	return &Processor{
 		tg:      tgClient,
 		vk:      vkClient,
+		yaGpt:   yaGptClient,
 		storage: storage,
+		urlsMap: shortener.NewUrlsMap(),
 	}
 }
 
@@ -59,12 +67,11 @@ func (p *Processor) Fetch(limit int) ([]events.Event, error) {
 
 func (p *Processor) Process(ctx context.Context, event events.Event) error {
 
-	switch event.Type {
-	case events.Message:
+	if event.Type == events.Message || event.Type == events.Callback {
 		return p.processMessage(ctx, event)
-	default:
-		return e.Wrap("can't process message", ErrUnknownEventType)
 	}
+
+	return e.Wrap("can't process message", ErrUnknownEventType)
 }
 
 func (p *Processor) processMessage(ctx context.Context, event events.Event) error {
@@ -73,7 +80,7 @@ func (p *Processor) processMessage(ctx context.Context, event events.Event) erro
 		return e.Wrap("can't process message", err)
 	}
 
-	if err := p.doCmd(ctx, event.Text, meta.ChatID, meta.Username); err != nil {
+	if err := p.doCmd(ctx, event.Text, meta); err != nil {
 		return e.Wrap("can't process message", err)
 	}
 
@@ -104,21 +111,37 @@ func event(upd telegram.Update) events.Event {
 		}
 	}
 
+	if updType == events.Callback {
+		res.Meta = Meta{
+			ChatID:          upd.CallbackQuery.Message.Chat.ID,
+			Username:        upd.CallbackQuery.Message.From.Username,
+			CallbackQueryID: upd.CallbackQuery.ID,
+		}
+	}
+
 	return res
 }
 
 func fetchText(upd telegram.Update) string {
-	if upd.Message == nil {
-		return ""
+
+	if upd.CallbackQuery != nil {
+		return upd.CallbackQuery.Data
 	}
 
-	return upd.Message.Text
+	if upd.Message != nil {
+		return upd.Message.Text
+	}
+
+	return ""
 }
 
 func fetchType(upd telegram.Update) events.Type {
-	if upd.Message == nil {
-		return events.Unknown
+	if upd.CallbackQuery != nil {
+		return events.Callback
+	}
+	if upd.Message != nil {
+		return events.Message
 	}
 
-	return events.Message
+	return events.Unknown
 }

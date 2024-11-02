@@ -61,7 +61,7 @@ func (s *Storage) PickPageList(ctx context.Context, username string) (*storage.P
 
 	urls := make([]string, 0, count)
 
-	q := `SELECT url FROM pages WHERE user_name = $1 ORDER BY assembler DESC`
+	q := `SELECT url FROM pages WHERE user_name = $1 ORDER BY assembler ASC`
 
 	rows, err := s.db.QueryContext(ctx, q, username)
 	if errors.Is(err, sql.ErrNoRows) {
