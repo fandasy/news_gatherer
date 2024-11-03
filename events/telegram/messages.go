@@ -40,10 +40,9 @@ const (
 )
 
 func generateListMsg(pages []string, count int) string {
-	pageList := strings.Join(pages, `
-`)
-	msgList := `There are ` + strconv.Itoa(count) + ` pages in your list:
-` + pageList
+	pageList := strings.Join(pages, "\n")
+	msgList := "There are " + strconv.Itoa(count) + " pages in your list: " +
+		"\n" + pageList
 
 	return msgList
 }

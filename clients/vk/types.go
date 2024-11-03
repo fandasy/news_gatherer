@@ -2,9 +2,17 @@ package vk
 
 type Response struct {
 	Response struct {
-		Count int    `json:"count"`
 		Items []Post `json:"items"`
 	} `json:"response"`
+}
+
+type GroupResponse struct {
+	Groups []Group `json:"response"`
+}
+
+type Group struct {
+	IsClosed    int    `json:"is_closed"`   // 0 - открыт, 1 - закрыт, 2 - приватный
+	Deactivated string `json:"deactivated"` // deleted, banned
 }
 
 type Post struct {

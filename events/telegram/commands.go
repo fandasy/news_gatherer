@@ -254,6 +254,8 @@ func (p *Processor) getConcreteNews(ctx context.Context, chatID int, username st
 				log.Println(err)
 			}
 		}
+
+		return nil
 	}
 
 	page := &storage.Page{

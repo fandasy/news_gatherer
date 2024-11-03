@@ -36,4 +36,8 @@
 
 ```
 start name.exe -config-path data.json -tg-bot-token <token> -vk-bot-token <token> -ya-gpt-token <token>
+
+// Example
+
+start v2.0.1.exe -config-path data.json -tg-bot-token 0123456789:AAA0AA0AAA0Aa0AaAaaa00aA0aaaAAaaaA0 -vk-bot-token 0a00000a0a00000a0a00000a000a00a00a00a000a00000a000a0000aa00000000000aa0  -ya-gpt-token y0_AAAAAAA_AAaAAAaA0aAAAAAAAAaaAAAaaAAaAa00aaAAaAaAaaaaAAa0aA
 ```

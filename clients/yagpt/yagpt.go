@@ -122,7 +122,7 @@ func yaGptParsing(RetellingUrl, OriginalUrl string) (data string, err error) {
 
 	doc.Find(".summary-scroll .chapters .chapter").Each(func(i int, s *goquery.Selection) {
 		title := s.Find(".chapter-subheading").Text() // Заголовок
-		result += "\nЗаголовок: " + title
+		result += "\n" + title
 
 		s.Find(".thesis").Each(func(j int, thesis *goquery.Selection) {
 			thesisText := thesis.Find(".thesis-text").Text()
@@ -130,7 +130,7 @@ func yaGptParsing(RetellingUrl, OriginalUrl string) (data string, err error) {
 		})
 	})
 
-	result += "\nСсылка на статью: " + OriginalUrl
+	result += "\n" + `<a href="` + OriginalUrl + `">Ссылка на статью</a>`
 
 	return result, nil
 }

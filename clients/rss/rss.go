@@ -54,7 +54,7 @@ func Parsing(feedURL string) ([]ParsedNews, error) {
 			title = item.Title
 		}
 
-		image := "Нет изображения"
+		image := ""
 		if item.Image != nil && item.Image.URL != "" {
 			image = item.Image.URL
 		}
@@ -78,12 +78,12 @@ func Parsing(feedURL string) ([]ParsedNews, error) {
 
 		result = append(result,
 			ParsedNews{News: "" +
-				"- Заголовок: " + title +
-				"\n  Image: " + image +
-				"\n  Описание: " + description +
-				"\n  Дата публикации: " + published +
-				"\n  Автор: " + author +
-				"\n  Ссылка: " + link,
+				title + "\n" +
+				`<a href="` + image + `"> Image </a>` +
+				"\nОписание: " + description +
+				"\nДата публикации: " + published +
+				"\nАвтор: " + author + "\n" +
+				`<a href="` + link + `"> Ссылка на статью</a>`,
 				NewsUrls: link,
 			})
 

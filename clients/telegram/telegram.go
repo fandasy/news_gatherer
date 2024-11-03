@@ -55,6 +55,7 @@ func (c *Client) SendMessageText(chatID int, text string) error {
 	q := url.Values{}
 	q.Add("chat_id", strconv.Itoa(chatID))
 	q.Add("text", text)
+	q.Add("parse_mode", "HTML")
 
 	_, err := c.doRequest("sendMessage", q)
 	if err != nil {
@@ -76,6 +77,7 @@ func (c *Client) SendMessageTextAndButton(chatID int, text string, button Inline
 	q.Add("chat_id", strconv.Itoa(chatID))
 	q.Add("text", text)
 	q.Add("reply_markup", string(jsonData))
+	q.Add("parse_mode", "HTML")
 
 	_, err = c.doRequest("sendMessage", q)
 	if err != nil {
