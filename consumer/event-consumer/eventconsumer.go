@@ -2,8 +2,9 @@ package eventconsumer
 
 import (
 	"context"
-	"log"
+	"log/slog"
 	"telegramBot/events"
+	"telegramBot/lib/sl"
 	"time"
 )
 
@@ -11,28 +12,28 @@ type Consumer struct {
 	fetcher   events.Fetcher
 	processor events.Processor
 	batchSize int
+	log       *slog.Logger
 }
 
 var stopSignal bool
 
-func New(fetcher events.Fetcher, processor events.Processor, batchSize int) Consumer {
-	return Consumer{
+func New(fetcher events.Fetcher, processor events.Processor, batchSize int, log *slog.Logger) *Consumer {
+	return &Consumer{
 		fetcher:   fetcher,
 		processor: processor,
 		batchSize: batchSize,
+		log:       log,
 	}
 }
 
-func (c *Consumer) Start() error {
+func (c *Consumer) Start() {
 
-	log.Print("Consumer started")
-
-	defer func() { log.Print("Consumer finished the job") }()
+	c.log.Info("Consumer started")
 
 	for {
-		gotEvents, err := c.fetcher.Fetch(c.batchSize)
+		gotEvents, err := c.fetcher.Fetch(context.TODO(), c.batchSize)
 		if err != nil {
-			log.Printf("[ERR] consumer: %s", err.Error())
+			c.log.Error("[ERR] consumer: %s", sl.Err(err))
 
 			continue
 		}
@@ -47,9 +48,7 @@ func (c *Consumer) Start() error {
 			}
 		}
 
-		if err := c.handleEvents(gotEvents); err != nil {
-			log.Print(err)
-		}
+		c.handleEvents(context.TODO(), gotEvents)
 
 		if !stopSignal {
 			continue
@@ -57,8 +56,6 @@ func (c *Consumer) Start() error {
 			break
 		}
 	}
-
-	return nil
 }
 
 func Stop() {
@@ -66,18 +63,24 @@ func Stop() {
 	time.Sleep(5 * time.Second)
 }
 
-func (c *Consumer) handleEvents(eventsArr []events.Event) error {
-	for _, eventsElement := range eventsArr {
-		go func(event events.Event) {
-			tw := time.Now()
-			log.Printf("got new event: %s", event.Text)
+func (c *Consumer) handleEvents(ctx context.Context, eventsArr []events.Event) {
 
-			if err := c.processor.Process(context.TODO(), event); err != nil {
-				log.Printf("can't handle event: %s", err.Error())
+	for _, event := range eventsArr {
+
+		go func(ctx context.Context, event events.Event) {
+			log := c.log.With(
+				slog.String("event", event.Text),
+			)
+			tw := time.Now()
+
+			log.Info("got new event")
+
+			if err := c.processor.Process(ctx, event); err != nil {
+				log.Error("can't handle event: ", sl.Err(err))
 			}
 
-			log.Printf("The %s event was over in %v", event.Text, time.Since(tw))
-		}(eventsElement)
+			log.Debug("event is over", slog.Any("processing time", time.Since(tw)))
+
+		}(ctx, event)
 	}
-	return nil
 }

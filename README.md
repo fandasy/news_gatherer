@@ -21,6 +21,13 @@
 ---
 ### JSON
 
+- "env": "local" 
+/* 
+local - text, уровень Debug
+dev   - json, уровень Debug
+prod  - json, уровень Info
+*/
+
 - "tgBotHost": "api.telegram.org",
 - "vkApiHost": "api.vk.com",
 - "vkApiVersion": "5.131",

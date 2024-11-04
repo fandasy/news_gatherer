@@ -31,7 +31,7 @@ type CallbackQuery struct {
 	Message *IncomingMessage `json:"message"`
 }
 
-type answerCallbackQuery struct {
+type AnswerCallbackQuery struct {
 	ID   string `json:"callback_query_id"`
 	Text string `json:"text"`
 }

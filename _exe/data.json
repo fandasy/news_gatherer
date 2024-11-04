@@ -1,4 +1,5 @@
 {
+    "env": "local",
     "tgBotHost": "api.telegram.org",
     "vkApiHost": "api.vk.com",
     "vkApiVersion": "5.131",

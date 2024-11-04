@@ -3,6 +3,7 @@ package telegram
 import (
 	"context"
 	"errors"
+	"log/slog"
 
 	"telegramBot/clients/telegram"
 	"telegramBot/clients/vk"
@@ -19,6 +20,7 @@ type Processor struct {
 	yaGpt   *yagpt.Client
 	offset  int
 	storage storage.Storage
+	log     *slog.Logger
 	urlsMap *shortener.UrlsMap
 }
 
@@ -33,19 +35,20 @@ var (
 	ErrUnknownMetaType  = errors.New("unknown meta type")
 )
 
-func New(tgClient *telegram.Client, vkClient *vk.Client, yaGptClient *yagpt.Client, storage storage.Storage) *Processor {
+func New(tgClient *telegram.Client, vkClient *vk.Client, yaGptClient *yagpt.Client, storage storage.Storage, log *slog.Logger) *Processor {
 	return &Processor{
 		tg:      tgClient,
 		vk:      vkClient,
 		yaGpt:   yaGptClient,
 		storage: storage,
+		log:     log,
 		urlsMap: shortener.NewUrlsMap(),
 	}
 }
 
-func (p *Processor) Fetch(limit int) ([]events.Event, error) {
+func (p *Processor) Fetch(ctx context.Context, limit int) ([]events.Event, error) {
 
-	updates, err := p.tg.Updates(p.offset, limit)
+	updates, err := p.tg.Updates(ctx, p.offset, limit)
 	if err != nil {
 		return nil, e.Wrap("can't get events", err)
 	}
@@ -66,31 +69,36 @@ func (p *Processor) Fetch(limit int) ([]events.Event, error) {
 }
 
 func (p *Processor) Process(ctx context.Context, event events.Event) error {
+	const op = "telegram/telegram.Process: "
 
 	if event.Type == events.Message || event.Type == events.Callback {
 		return p.processMessage(ctx, event)
 	}
 
-	return e.Wrap("can't process message", ErrUnknownEventType)
+	return e.Wrap(op+"can't process message", ErrUnknownEventType)
 }
 
 func (p *Processor) processMessage(ctx context.Context, event events.Event) error {
+	const op = "telegram/telegram.processMessage: "
+
 	meta, err := meta(event)
 	if err != nil {
-		return e.Wrap("can't process message", err)
+		return e.Wrap(op+"can't process message", err)
 	}
 
 	if err := p.doCmd(ctx, event.Text, meta); err != nil {
-		return e.Wrap("can't process message", err)
+		return e.Wrap(op+"can't process message", err)
 	}
 
 	return nil
 }
 
 func meta(event events.Event) (Meta, error) {
+	const op = "telegram/telegram.meta: "
+
 	res, ok := event.Meta.(Meta)
 	if !ok {
-		return Meta{}, e.Wrap("can't get meta", ErrUnknownMetaType)
+		return Meta{}, e.Wrap(op+"can't get meta", ErrUnknownMetaType)
 	}
 
 	return res, nil

@@ -2,6 +2,7 @@ package yagpt
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"io"
 	"net/http"
@@ -31,8 +32,8 @@ func newToken(token string) string {
 	return "OAuth " + token
 }
 
-func (c *Client) GetRetelling(pageURL string) (retelling string, err error) {
-	defer func() { err = e.Wrap("yaGPT-client/ can't get retelling", err) }()
+func (c *Client) GetRetelling(ctx context.Context, pageURL string) (retelling string, err error) {
+	defer func() { err = e.Wrap("clients/yaGpt.GetRetelling", err) }()
 
 	requestBody := RequestBody{
 		ArticleURL: pageURL,
@@ -43,7 +44,9 @@ func (c *Client) GetRetelling(pageURL string) (retelling string, err error) {
 		return "", err
 	}
 
-	data, err := c.doRequest("sharing-url", jsonData)
+	// Не плохо было бы поставить ctx на 5-15 сек, так как если сайт не приспособлен под "пересказ" то yaGpt может уйти на долго (20-40 сек, мб больше) выдав под конец status error
+
+	data, err := c.doRequest(ctx, "sharing-url", jsonData)
 	if err != nil {
 		return "", err
 	}
@@ -65,8 +68,8 @@ func (c *Client) GetRetelling(pageURL string) (retelling string, err error) {
 	return retelling, nil
 }
 
-func (c *Client) doRequest(method string, jsonData []byte) (data []byte, err error) {
-	defer func() { err = e.Wrap("yaGPT-client/ can't do request", err) }()
+func (c *Client) doRequest(ctx context.Context, method string, jsonData []byte) (data []byte, err error) {
+	defer func() { err = e.Wrap("clients/yaGpt.doRequest", err) }()
 
 	u := url.URL{
 		Scheme: "https",
@@ -74,7 +77,7 @@ func (c *Client) doRequest(method string, jsonData []byte) (data []byte, err err
 		Path:   path.Join("api", method),
 	}
 
-	req, err := http.NewRequest(http.MethodPost, u.String(), bytes.NewBuffer(jsonData))
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, u.String(), bytes.NewBuffer(jsonData))
 	if err != nil {
 		return nil, err
 	}
@@ -98,7 +101,7 @@ func (c *Client) doRequest(method string, jsonData []byte) (data []byte, err err
 }
 
 func yaGptParsing(RetellingUrl, OriginalUrl string) (data string, err error) {
-	defer func() { err = e.Wrap("yaGPT-client/ can't do parsing", err) }()
+	defer func() { err = e.Wrap("clients/yaGpt.yaGptParsing", err) }()
 
 	res, err := http.Get(RetellingUrl)
 	if err != nil {

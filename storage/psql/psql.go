@@ -4,59 +4,67 @@ import (
 	"context"
 	"database/sql"
 	"errors"
-	"fmt"
+	"log/slog"
+	"telegramBot/lib/e"
 	"telegramBot/storage"
 
 	_ "github.com/lib/pq"
 )
 
 type Storage struct {
-	db *sql.DB
+	db  *sql.DB
+	log *slog.Logger
 }
 
-func New(path string) (*Storage, error) {
+func New(path string, log *slog.Logger) (*Storage, error) {
 	db, err := sql.Open("postgres", path)
 	if err != nil {
-		return nil, fmt.Errorf("can't open database: %w", err)
+		return nil, e.Wrap("can't open database", err)
 	}
 
 	if err := db.Ping(); err != nil {
-		return nil, fmt.Errorf("can't connect to database: %w", err)
+		return nil, e.Wrap("can't ping database", err)
 	}
 
-	return &Storage{db: db}, nil
+	return &Storage{
+		db:  db,
+		log: log,
+	}, nil
 }
 
 func (s *Storage) Save(ctx context.Context, p *storage.Page) error {
+	const op = "psql.Save: "
 
 	q := `INSERT INTO pages (url, user_name, assembler) VALUES($1, $2, $3)`
 
 	if _, err := s.db.ExecContext(ctx, q, p.URL, p.UserName, p.Assembler); err != nil {
-		return fmt.Errorf("can't save page: %w", err)
+		return e.Wrap(op+"can't save page", err)
 	}
 
 	return nil
 }
 
 func (s *Storage) Remove(ctx context.Context, page *storage.Page) error {
+	const op = "psql.Remove: "
 
 	q := `DELETE FROM pages WHERE url = $1 AND user_name = $2`
 
 	if _, err := s.db.ExecContext(ctx, q, page.URL, page.UserName); err != nil {
-		return fmt.Errorf("can't pick remove page: %w", err)
+		return e.Wrap(op+"can't remove page", err)
 	}
 
 	return nil
 }
 
 func (s *Storage) PickPageList(ctx context.Context, username string) (*storage.PageList, int, error) {
+	const op = "psql.PickPageList: "
 
 	qCount := `SELECT COUNT(*) FROM pages WHERE user_name = $1`
 
 	var count int
 
 	if err := s.db.QueryRowContext(ctx, qCount, username).Scan(&count); err != nil {
-		return nil, 0, fmt.Errorf("unable to select page existence check: %w", err)
+		return nil, 0, e.Wrap(op+"unable to select page existence check", err)
 	}
 
 	urls := make([]string, 0, count)
@@ -68,7 +76,7 @@ func (s *Storage) PickPageList(ctx context.Context, username string) (*storage.P
 		return nil, 0, storage.ErrNoSavedPages
 	}
 	if err != nil {
-		return nil, 0, fmt.Errorf("can't pick page list: %w", err)
+		return nil, 0, e.Wrap(op+"can't pick page list", err)
 	}
 
 	defer rows.Close()
@@ -76,7 +84,7 @@ func (s *Storage) PickPageList(ctx context.Context, username string) (*storage.P
 	for rows.Next() {
 		var url string
 		if err := rows.Scan(&url); err != nil {
-			return nil, 0, fmt.Errorf("can't pick rows page list: %w", err)
+			return nil, 0, e.Wrap(op+"can't pick rows page list", err)
 		}
 		urls = append(urls, url)
 	}
@@ -88,13 +96,14 @@ func (s *Storage) PickPageList(ctx context.Context, username string) (*storage.P
 }
 
 func (s *Storage) GetAllNews(ctx context.Context, username string) (*storage.NewsList, error) {
+	const op = "psql.GetAllNews: "
 
 	qCount := `SELECT COUNT(*) FROM pages WHERE user_name = $1`
 
 	var count int
 
 	if err := s.db.QueryRowContext(ctx, qCount, username).Scan(&count); err != nil {
-		return nil, fmt.Errorf("unable to select page existence check: %w", err)
+		return nil, e.Wrap(op+"unable to select page existence check", err)
 	}
 
 	if count == 0 {
@@ -107,7 +116,7 @@ func (s *Storage) GetAllNews(ctx context.Context, username string) (*storage.New
 
 	rows, err := s.db.QueryContext(ctx, q, username)
 	if err != nil {
-		return nil, fmt.Errorf("can't get news list: %w", err)
+		return nil, e.Wrap(op+"can't get news list", err)
 	}
 
 	defer rows.Close()
@@ -119,7 +128,7 @@ func (s *Storage) GetAllNews(ctx context.Context, username string) (*storage.New
 		)
 
 		if err := rows.Scan(&url, &assembler); err != nil {
-			return nil, fmt.Errorf("can't get rows news list: %w", err)
+			return nil, e.Wrap(op+"can't get rows news list", err)
 		}
 
 		news := storage.News{
@@ -136,13 +145,14 @@ func (s *Storage) GetAllNews(ctx context.Context, username string) (*storage.New
 }
 
 func (s *Storage) PickNews(ctx context.Context, page *storage.Page) (*storage.NewsList, error) {
+	const op = "psql.PickNews: "
 
 	qCount := `SELECT COUNT(*) FROM pages WHERE user_name = $1`
 
 	var count int
 
 	if err := s.db.QueryRowContext(ctx, qCount, page.UserName).Scan(&count); err != nil {
-		return nil, fmt.Errorf("unable to select page existence check: %w", err)
+		return nil, e.Wrap(op+"unable to select page existence check", err)
 	}
 
 	if count == 0 {
@@ -155,7 +165,7 @@ func (s *Storage) PickNews(ctx context.Context, page *storage.Page) (*storage.Ne
 
 	rows, err := s.db.QueryContext(ctx, q, page.Assembler, page.UserName)
 	if err != nil {
-		return nil, fmt.Errorf("can't pick news list: %w", err)
+		return nil, e.Wrap(op+"can't pick news list", err)
 	}
 
 	defer rows.Close()
@@ -164,7 +174,7 @@ func (s *Storage) PickNews(ctx context.Context, page *storage.Page) (*storage.Ne
 		var url string
 
 		if err := rows.Scan(&url); err != nil {
-			return nil, fmt.Errorf("can't pick rows news list: %w", err)
+			return nil, e.Wrap(op+"can't pick rows news list", err)
 		}
 
 		news := storage.News{
@@ -181,19 +191,21 @@ func (s *Storage) PickNews(ctx context.Context, page *storage.Page) (*storage.Ne
 }
 
 func (s *Storage) IsExists(ctx context.Context, page *storage.Page) (bool, error) {
+	const op = "psql.IsExists: "
+
 	var count int
 
 	if page.URL == "" {
 		q := `SELECT COUNT(*) FROM pages WHERE assembler = $1 AND user_name = $2`
 
 		if err := s.db.QueryRowContext(ctx, q, page.Assembler, page.UserName).Scan(&count); err != nil {
-			return false, fmt.Errorf("can't pick check if assembler exists: %w", err)
+			return false, e.Wrap(op+"can't pick check if assembler exists", err)
 		}
 	} else {
 		q := `SELECT COUNT(*) FROM pages WHERE url = $1 AND user_name = $2`
 
 		if err := s.db.QueryRowContext(ctx, q, page.URL, page.UserName).Scan(&count); err != nil {
-			return false, fmt.Errorf("can't pick check if page exists: %w", err)
+			return false, e.Wrap(op+"can't pick check if page exists", err)
 		}
 	}
 
@@ -201,11 +213,13 @@ func (s *Storage) IsExists(ctx context.Context, page *storage.Page) (bool, error
 }
 
 func (s *Storage) Init(ctx context.Context) error {
+	const op = "psql.Init: "
+
 	q := `CREATE TABLE IF NOT EXISTS pages (user_name TEXT, url TEXT, assembler TEXT)`
 
 	_, err := s.db.ExecContext(ctx, q)
 	if err != nil {
-		return fmt.Errorf("can't create table: %w", err)
+		return e.Wrap(op+"can't init storage", err)
 	}
 
 	return nil

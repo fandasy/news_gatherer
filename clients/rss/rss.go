@@ -1,10 +1,12 @@
 package rss
 
 import (
+	"context"
 	"github.com/mmcdole/gofeed"
 	"log"
 	"net/url"
 	"strings"
+	"telegramBot/lib/e"
 )
 
 type ParsedNews struct {
@@ -31,12 +33,14 @@ func ValidateFeedURL(feedURL string) bool {
 	return false
 }
 
-func Parsing(feedURL string) ([]ParsedNews, error) {
+func Parsing(ctx context.Context, feedURL string) ([]ParsedNews, error) {
+	const op = "rss.Parsing"
+
 	fp := gofeed.NewParser()
 
-	feed, err := fp.ParseURL(feedURL)
+	feed, err := fp.ParseURLWithContext(feedURL, ctx)
 	if err != nil {
-		return []ParsedNews{}, err
+		return []ParsedNews{}, e.Wrap(op, err)
 	}
 
 	var (

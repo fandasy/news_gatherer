@@ -13,6 +13,8 @@ type UrlsMap struct {
 	rw sync.RWMutex
 }
 
+// Если у вас нагрузка (кол-во пар) на кэш-мапу известна, то лучше будет буферизировать мапу, ну или использовать redis для этой задачи
+
 func NewUrlsMap() *UrlsMap {
 	return &UrlsMap{
 		m: make(map[string]string),
@@ -32,8 +34,10 @@ func (c *UrlsMap) Set(key, value string) {
 	c.m[key] = value
 }
 
-const charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
-const keyLength = 10
+const (
+	charset   = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+	keyLength = 10
+)
 
 func (c *UrlsMap) GenerateShortKey(originalUrls string) string {
 	r := rand.New(rand.NewSource(time.Now().UnixNano()))

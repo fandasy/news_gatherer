@@ -1,6 +1,7 @@
 package vk
 
 import (
+	"context"
 	"encoding/json"
 	"io"
 	"net/http"
@@ -26,8 +27,8 @@ func New(host, version, token string) *Client {
 	}
 }
 
-func (c *Client) GetNews(groupID string) (news []string, err error) {
-	defer func() { err = e.Wrap("vk-client/ can't get news", err) }()
+func (c *Client) GetNews(ctx context.Context, groupID string) (news []string, err error) {
+	defer func() { err = e.Wrap("clients/vk.GetNews", err) }()
 
 	q := url.Values{}
 	q.Add("count", "10")
@@ -35,7 +36,7 @@ func (c *Client) GetNews(groupID string) (news []string, err error) {
 	q.Add("access_token", c.token)
 	q.Add("v", c.version)
 
-	data, err := c.doRequest("wall.get", q)
+	data, err := c.doRequest(ctx, "wall.get", q)
 	if err != nil {
 		return nil, err
 	}
@@ -49,15 +50,15 @@ func (c *Client) GetNews(groupID string) (news []string, err error) {
 	return vkParsing(res.Response.Items), nil
 }
 
-func (c *Client) ValidateNewsGroup(groupID string) (val bool, err error) {
-	defer func() { err = e.Wrap("vk-client/ can't validate news group", err) }()
+func (c *Client) ValidateNewsGroup(ctx context.Context, groupID string) (val bool, err error) {
+	defer func() { err = e.Wrap("clients/vk.ValidateNewsGroup", err) }()
 
 	q := url.Values{}
 	q.Add("group_id", groupID)
 	q.Add("access_token", c.token)
 	q.Add("v", c.version)
 
-	data, err := c.doRequest("groups.getById", q)
+	data, err := c.doRequest(ctx, "groups.getById", q)
 	if err != nil {
 		return false, err
 	}
@@ -79,8 +80,8 @@ func (c *Client) ValidateNewsGroup(groupID string) (val bool, err error) {
 	return false, nil
 }
 
-func (c *Client) doRequest(method string, query url.Values) (data []byte, err error) {
-	defer func() { err = e.Wrap("vk-client/ can't do request", err) }()
+func (c *Client) doRequest(ctx context.Context, method string, query url.Values) (data []byte, err error) {
+	defer func() { err = e.Wrap("clients/vk.doRequest", err) }()
 
 	u := url.URL{
 		Scheme: "https",
@@ -88,7 +89,7 @@ func (c *Client) doRequest(method string, query url.Values) (data []byte, err er
 		Path:   path.Join("method", method),
 	}
 
-	req, err := http.NewRequest(http.MethodGet, u.String(), nil)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, u.String(), nil)
 	if err != nil {
 		return nil, err
 	}
