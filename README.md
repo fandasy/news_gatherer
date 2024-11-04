@@ -22,18 +22,19 @@
 ### JSON
 
 - "env": "local" 
-/* 
-local - text, уровень Debug
-dev   - json, уровень Debug
-prod  - json, уровень Info
-*/
-
 - "tgBotHost": "api.telegram.org",
 - "vkApiHost": "api.vk.com",
 - "vkApiVersion": "5.131",
 - "yaGptHost": "300.ya.ru",
 - "PSQLconnection": "user=username dbname=db password=pass host=localhost port=5432 sslmode=disable",
-- "batchSize": 100 // batchSize — лимит обновлений Telegram бота, от 1 до 100, по умолчанию 100
+- "batchSize": 100
+
+batchSize — лимит обновлений Telegram бота, от 1 до 100, по умолчанию 100
+
+Варианты env
+- local - text, уровень Debug
+- dev   - json, уровень Debug
+- prod  - json, уровень Info
 
 ---
 ### Для запуска бота существует два варианта:
