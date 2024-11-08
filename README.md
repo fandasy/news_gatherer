@@ -28,6 +28,9 @@
 - "yaGptHost": "300.ya.ru",
 - "PSQLconnection": "user=username dbname=db password=pass host=localhost port=5432 sslmode=disable",
 - "batchSize": 100
+- "maxNumberReq": 5, // кол-во запросов в timeSlice * time.Second
+- "timeSlice": 1,    // Промежуток времени (в секундах)
+- "banTime": 60      // Время бана (в секундах)
 
 batchSize — лимит обновлений Telegram бота, от 1 до 100, по умолчанию 100
 

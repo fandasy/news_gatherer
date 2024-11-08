@@ -5,5 +5,8 @@
     "vkApiVersion": "5.131",
     "yaGptHost": "300.ya.ru",
     "PSQLconnection": "user=username dbname=db password=pass host=localhost port=5432 sslmode=disable",
-    "batchSize": 100
+    "batchSize": 100,
+    "maxNumberReq": 5,
+    "timeSlice": 1,
+    "banTime": 60
 }
