@@ -54,6 +54,8 @@ func (r *ReqCounter) Checking(username string, options LimitOptions) bool {
 
 				return false
 			}
+
+			r.Add(username, 1)
 		} else {
 
 			r.Reset(username)
@@ -81,7 +83,7 @@ func (r *ReqCounter) Set(key string) {
 	defer r.rw.Unlock()
 
 	user := &UserControl{
-		msgCounter:  0,
+		msgCounter:  1,
 		lastMsgTime: time.Now(),
 	}
 
@@ -91,7 +93,7 @@ func (r *ReqCounter) Set(key string) {
 func (r *ReqCounter) Reset(key string) {
 	r.rw.Lock()
 	defer r.rw.Unlock()
-	r.m[key].msgCounter = 0
+	r.m[key].msgCounter = 1
 	r.m[key].lastMsgTime = time.Now()
 }
 

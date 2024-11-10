@@ -58,26 +58,21 @@ func (p *Processor) doCmd(ctx context.Context, text string, meta Meta) error {
 		return p.sendHello(ctx, chatID)
 
 	case text == ListCmd:
-		p.reqCounter.Add(username, 1)
 		return p.sendList(ctx, chatID, username)
 
 	case text == AllNewsCmd:
-		p.reqCounter.Add(username, 3)
 		return p.getAllNews(ctx, chatID, username)
 
 	case strings.HasPrefix(text, ConcreteNewsCmd):
-		p.reqCounter.Add(username, 2)
 		return p.getConcreteNews(ctx, chatID, username, text)
 
 	case strings.HasPrefix(text, RemoveCmd):
-		p.reqCounter.Add(username, 1)
 		return p.removePage(ctx, chatID, text, username)
 
 	case strings.HasPrefix(text, RetellingCmd):
 		return p.retelling(ctx, chatID, callbackID, text)
 
 	case isAddCmd(text):
-		p.reqCounter.Add(username, 1)
 		// SaveNewsPages
 		return p.defineAssembler(ctx, chatID, text, username)
 

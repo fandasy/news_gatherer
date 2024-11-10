@@ -3,9 +3,10 @@ package rss
 import (
 	"context"
 	"github.com/mmcdole/gofeed"
-	"log"
+	"log/slog"
 	"net/url"
 	"strings"
+	"telegramBot/internal/lib/logger/sl"
 	"telegramBot/pkg/e"
 )
 
@@ -15,10 +16,11 @@ type ParsedNews struct {
 }
 
 func ValidateFeedURL(feedURL string) bool {
+	const op = "rss.ValidateFeedURL"
 
 	parsedURL, err := url.Parse(feedURL)
 	if err != nil {
-		log.Printf("invalid URL: %v", err)
+		slog.Error(op, sl.Err(err))
 		return false
 	}
 
@@ -35,6 +37,12 @@ func ValidateFeedURL(feedURL string) bool {
 
 func Parsing(ctx context.Context, feedURL string) ([]ParsedNews, error) {
 	const op = "rss.Parsing"
+
+	defer func() {
+		if err := recover(); err != nil {
+			slog.Error("[RECOVER] panic err: ", err)
+		}
+	}()
 
 	fp := gofeed.NewParser()
 
