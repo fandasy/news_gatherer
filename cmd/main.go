@@ -6,6 +6,7 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+
 	tgClient "telegramBot/internal/clients/telegram"
 	vkClient "telegramBot/internal/clients/vk"
 	yaGptClient "telegramBot/internal/clients/yagpt"
@@ -20,22 +21,22 @@ import (
 
 func main() {
 
-	startObjects, err := s.GetFlagsObjects()
+	flagsObj, err := s.GetFlagsObjects()
 	if err != nil {
 		panic(err)
 	}
 
-	launchData, err := j.OpenJsonFiles(startObjects.JsonFilePath)
+	cfg, err := j.OpenJsonFiles(flagsObj.JsonFilePath)
 	if err != nil {
 		panic(err)
 	}
 
-	log, err := l.LoggingStart(launchData.Env)
+	log, err := l.LoggingStart(cfg.Env)
 	if err != nil {
 		panic(err)
 	}
 
-	storage, err := psql.New(launchData.ConnStr, log)
+	storage, err := psql.New(cfg.ConnStr, log)
 	if err != nil {
 		panic(err)
 	}
@@ -44,12 +45,12 @@ func main() {
 		panic(err)
 	}
 
-	reqLimit := req_controller.NewLimitOptions(launchData.MaxNumberReq, launchData.TimeSlice, launchData.BanTime)
+	reqLimit := req_controller.NewLimitOptions(cfg.MaxNumberReq, cfg.TimeSlice, cfg.BanTime)
 
 	eventsProcessor := telegram.New(
-		tgClient.New(launchData.TgBotHost, startObjects.TgToken),
-		vkClient.New(launchData.VkApiHost, launchData.VkApiVersion, startObjects.VkToken),
-		yaGptClient.New(launchData.YaGptHost, startObjects.YaGptToken),
+		tgClient.New(cfg.TgBotHost, flagsObj.TgToken),
+		vkClient.New(cfg.VkApiHost, cfg.VkApiVersion, flagsObj.VkToken),
+		yaGptClient.New(cfg.YaGptHost, flagsObj.YaGptToken),
 		storage,
 		reqLimit,
 		log,
@@ -58,7 +59,7 @@ func main() {
 	go func() {
 		log.Info("service started")
 
-		consumer := eventconsumer.New(eventsProcessor, eventsProcessor, launchData.BatchSize, log)
+		consumer := eventconsumer.New(eventsProcessor, eventsProcessor, cfg.BatchSize, log)
 
 		consumer.Start()
 

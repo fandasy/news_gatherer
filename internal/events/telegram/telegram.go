@@ -89,7 +89,7 @@ func (p *Processor) Process(ctx context.Context, event events.Event) error {
 		return p.processMessage(ctx, event)
 	}
 
-	return e.Wrap(op+"can't process message", ErrUnknownEventType)
+	return e.Wrap(op, ErrUnknownEventType)
 }
 
 func (p *Processor) processMessage(ctx context.Context, event events.Event) error {
@@ -97,11 +97,11 @@ func (p *Processor) processMessage(ctx context.Context, event events.Event) erro
 
 	meta, err := meta(event)
 	if err != nil {
-		return e.Wrap(op+"can't process message", err)
+		return e.Wrap(op, err)
 	}
 
 	if err := p.doCmd(ctx, event.Text, meta); err != nil {
-		return e.Wrap(op+"can't process message", err)
+		return e.Wrap(op, err)
 	}
 
 	return nil
@@ -112,7 +112,7 @@ func meta(event events.Event) (Meta, error) {
 
 	res, ok := event.Meta.(Meta)
 	if !ok {
-		return Meta{}, e.Wrap(op+"can't get meta", ErrUnknownMetaType)
+		return Meta{}, e.Wrap(op, ErrUnknownMetaType)
 	}
 
 	return res, nil

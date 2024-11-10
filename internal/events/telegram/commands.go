@@ -34,7 +34,7 @@ func (p *Processor) doCmd(ctx context.Context, text string, meta Meta) error {
 	username := meta.Username
 	callbackID := meta.CallbackQueryID
 
-	// callback идёт от имени бота
+	// callback идёт от имени бота, из-за чего его обработку пропускаю
 	if callbackID == "" {
 		if ok := p.reqCounter.Checking(username, p.reqLimitOptions); !ok {
 			return p.tg.SendMessageText(ctx, chatID, msgThrowingTooManyRequests)
@@ -235,11 +235,6 @@ func (p *Processor) getAllNews(ctx context.Context, chatID int, username string)
 
 	const op = "commands/telegram.getAllNews"
 
-	log := p.log.With(
-		slog.String("op", op),
-		slog.String("username", username),
-	)
-
 	newsFeedList, err := p.storage.GetAllNews(ctx, username)
 	if err != nil && !errors.Is(err, storage.ErrNoSavedPages) {
 		return e.Wrap(op, err)
@@ -251,7 +246,7 @@ func (p *Processor) getAllNews(ctx context.Context, chatID int, username string)
 
 	for _, newsFeedInfo := range newsFeedList.News {
 		if err := p.getNewsAndSendMessage(ctx, chatID, newsFeedInfo); err != nil {
-			log.Error("", sl.Err(err))
+			p.log.Error(op, sl.Err(err))
 		}
 	}
 
@@ -260,10 +255,6 @@ func (p *Processor) getAllNews(ctx context.Context, chatID int, username string)
 
 func (p *Processor) getConcreteNews(ctx context.Context, chatID int, username string, cmdText string) (err error) {
 	const op = "commands/telegram.getConcreteNews"
-
-	log := p.log.With(
-		slog.String("op", "commands/telegram.getConcreteNews"),
-	)
 
 	filter := strings.TrimPrefix(cmdText, ConcreteNewsCmd)
 
@@ -284,7 +275,7 @@ func (p *Processor) getConcreteNews(ctx context.Context, chatID int, username st
 
 		for _, newsFeedInfo := range newsFeedList.News {
 			if err := p.getNewsAndSendMessage(ctx, chatID, newsFeedInfo); err != nil {
-				log.Error("", sl.Err(err))
+				p.log.Error(op, sl.Err(err))
 			}
 		}
 
