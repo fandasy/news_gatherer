@@ -85,12 +85,13 @@ func (p *Processor) defineAssembler(ctx context.Context, chatID int, pageURL str
 	switch {
 	case strings.HasPrefix(pageURL, VkGroupPath):
 		groupID := strings.TrimPrefix(pageURL, VkGroupPath)
-		val, err := p.vk.ValidateNewsGroup(ctx, groupID)
+		ok, err := p.vk.ValidateNewsGroup(ctx, groupID)
 		if err != nil {
 			return err
 		}
-		if val {
+		if ok {
 			return p.savePage(ctx, chatID, pageURL, username, "VK")
+
 		} else {
 			return p.tg.SendMessageText(ctx, chatID, msgNotValidateGroup)
 		}

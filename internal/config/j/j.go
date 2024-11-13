@@ -1,28 +1,37 @@
 package j
 
 import (
-	"encoding/json"
+	"gopkg.in/yaml.v3"
 	"io"
 	"os"
 	"telegramBot/pkg/e"
 	"time"
 )
 
-type JsonData struct {
-	Env          string        `json:"env"`
-	TgBotHost    string        `json:"tgBotHost"`
-	VkApiHost    string        `json:"vkApiHost"`
-	VkApiVersion string        `json:"vkApiVersion"`
-	YaGptHost    string        `json:"yaGptHost"`
-	ConnStr      string        `json:"PSQLconnection"`
-	BatchSize    int           `json:"batchSize"`
-	MaxNumberReq uint          `json:"maxNumberReq"`
-	TimeSlice    time.Duration `json:"timeSlice"`
-	BanTime      time.Duration `json:"banTime"`
+type ConfigData struct {
+	Env           string        `yaml:"env"`
+	Clients       Clients       `yaml:"clients"`
+	ConnStr       string        `yaml:"PSQLConnection"`
+	BatchSize     int           `yaml:"batchSize"`
+	UpdateTimeout time.Duration `yaml:"updateTimeout"`
+	ReqLimit      ReqLimit      `yaml:"reqLimit"`
 }
 
-func OpenJsonFiles(filePath string) (*JsonData, error) {
-	var launchData JsonData
+type Clients struct {
+	TgBotHost    string `yaml:"tgBotHost"`
+	VkApiHost    string `yaml:"vkApiHost"`
+	VkApiVersion string `yaml:"vkApiVersion"`
+	YaGptHost    string `yaml:"yaGptHost"`
+}
+
+type ReqLimit struct {
+	MaxNumberReq uint          `yaml:"maxNumberReq"`
+	TimeSlice    time.Duration `yaml:"timeSlice"`
+	BanTime      time.Duration `yaml:"banTime"`
+}
+
+func LoadConfig(filePath string) (*ConfigData, error) {
+	var cfg ConfigData
 
 	file, err := os.Open(filePath)
 	if err != nil {
@@ -30,14 +39,14 @@ func OpenJsonFiles(filePath string) (*JsonData, error) {
 	}
 	defer file.Close()
 
-	byteValue, err := io.ReadAll(file)
+	data, err := io.ReadAll(file)
 	if err != nil {
 		return nil, e.Wrap("failed to read JSON file", err)
 	}
 
-	if err := json.Unmarshal(byteValue, &launchData); err != nil {
+	if err := yaml.Unmarshal(data, &cfg); err != nil {
 		return nil, e.Wrap("failed to parse JSON file", err)
 	}
 
-	return &launchData, err
+	return &cfg, err
 }

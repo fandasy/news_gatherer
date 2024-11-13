@@ -10,16 +10,14 @@ type Processor interface {
 	Process(ctx context.Context, e Event) error
 }
 
-type Type int
-
 const (
-	Unknown Type = iota
+	Unknown int = iota
 	Message
 	Callback
 )
 
 type Event struct {
-	Type Type
+	Type int
 	Text string
 	Meta interface{}
 }

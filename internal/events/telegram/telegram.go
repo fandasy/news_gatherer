@@ -157,7 +157,7 @@ func fetchText(upd telegram2.Update) string {
 	return ""
 }
 
-func fetchType(upd telegram2.Update) events.Type {
+func fetchType(upd telegram2.Update) int {
 	if upd.CallbackQuery != nil {
 		return events.Callback
 	}

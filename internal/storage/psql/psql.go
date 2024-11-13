@@ -58,33 +58,31 @@ func (s *Storage) Remove(ctx context.Context, page *storage.Page) error {
 func (s *Storage) PickPageList(ctx context.Context, username string) (*storage.PageList, int, error) {
 	const op = "storage.psql.PickPageList"
 
-	qCount := `SELECT COUNT(*) FROM pages WHERE user_name = $1`
-
-	var count int
-
-	if err := s.db.QueryRowContext(ctx, qCount, username).Scan(&count); err != nil {
-		return nil, 0, e.Wrap(op, err)
-	}
-
-	urls := make([]string, 0, count)
-
 	q := `SELECT url FROM pages WHERE user_name = $1 ORDER BY assembler ASC`
 
 	rows, err := s.db.QueryContext(ctx, q, username)
-	if errors.Is(err, sql.ErrNoRows) {
-		return nil, 0, storage.ErrNoSavedPages
-	}
 	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, 0, storage.ErrNoSavedPages
+		}
+
 		return nil, 0, e.Wrap(op, err)
 	}
 
 	defer rows.Close()
+
+	var (
+		urls  []string
+		count int
+	)
 
 	for rows.Next() {
 		var url string
 		if err := rows.Scan(&url); err != nil {
 			return nil, 0, e.Wrap(op, err)
 		}
+
+		count++
 		urls = append(urls, url)
 	}
 
@@ -97,26 +95,18 @@ func (s *Storage) PickPageList(ctx context.Context, username string) (*storage.P
 func (s *Storage) GetAllNews(ctx context.Context, username string) (*storage.NewsList, error) {
 	const op = "storage.psql.GetAllNews"
 
-	qCount := `SELECT COUNT(*) FROM pages WHERE user_name = $1`
-
-	var count int
-
-	if err := s.db.QueryRowContext(ctx, qCount, username).Scan(&count); err != nil {
-		return nil, e.Wrap(op, err)
-	}
-
-	if count == 0 {
-		return nil, storage.ErrNoSavedPages
-	}
-
-	newsArr := make([]storage.News, 0, count)
-
 	q := `SELECT url, assembler FROM pages WHERE user_name = $1 ORDER BY assembler ASC`
 
 	rows, err := s.db.QueryContext(ctx, q, username)
 	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, storage.ErrNoSavedPages
+		}
+
 		return nil, e.Wrap(op, err)
 	}
+
+	var newsArr []storage.News
 
 	defer rows.Close()
 
@@ -146,28 +136,20 @@ func (s *Storage) GetAllNews(ctx context.Context, username string) (*storage.New
 func (s *Storage) PickNews(ctx context.Context, page *storage.Page) (*storage.NewsList, error) {
 	const op = "storage.psql.PickNews"
 
-	qCount := `SELECT COUNT(*) FROM pages WHERE user_name = $1`
-
-	var count int
-
-	if err := s.db.QueryRowContext(ctx, qCount, page.UserName).Scan(&count); err != nil {
-		return nil, e.Wrap(op, err)
-	}
-
-	if count == 0 {
-		return nil, storage.ErrNoSavedPages
-	}
-
-	newsArr := make([]storage.News, 0, count)
-
 	q := `SELECT url FROM pages WHERE assembler = $1 AND user_name = $2`
 
 	rows, err := s.db.QueryContext(ctx, q, page.Assembler, page.UserName)
 	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, storage.ErrNoSavedPages
+		}
+
 		return nil, e.Wrap(op, err)
 	}
 
 	defer rows.Close()
+
+	var newsArr []storage.News
 
 	for rows.Next() {
 		var url string

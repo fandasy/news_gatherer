@@ -2,18 +2,20 @@ package req_controller
 
 import (
 	"sync"
+	"sync/atomic"
 	"time"
+
+	"telegramBot/internal/config/j"
 )
 
 type ReqCounter struct {
-	m  map[string]*UserControl
-	rw sync.RWMutex
+	m sync.Map
 }
 
 type UserControl struct {
-	msgCounter  uint
-	lastMsgTime time.Time
-	bannedUntil time.Time
+	msgCounter  int32
+	lastMsgTime int64 // хранить время в наносекундах
+	bannedUntil int64 // хранить время в наносекундах
 }
 
 type LimitOptions struct {
@@ -22,84 +24,70 @@ type LimitOptions struct {
 	BanTime   time.Duration
 }
 
-func NewLimitOptions(muxNumReq uint, timeSlice time.Duration, banTime time.Duration) LimitOptions {
+func NewLimitOptions(limit j.ReqLimit) LimitOptions {
 	return LimitOptions{
-		MaxNumReq: muxNumReq,
-		TimeSlice: timeSlice,
-		BanTime:   banTime,
+		MaxNumReq: limit.MaxNumberReq,
+		TimeSlice: limit.TimeSlice,
+		BanTime:   limit.BanTime,
 	}
 }
 
 func New() *ReqCounter {
-	return &ReqCounter{
-		m: make(map[string]*UserControl),
-	}
+	return &ReqCounter{}
 }
 
 func (r *ReqCounter) Checking(username string, options LimitOptions) bool {
-
-	user, ok := r.Get(username)
+	user, ok := r.GetOrSet(username)
 	if !ok {
-		r.Set(username)
+		return true
+	}
 
-	} else {
+	bannedUntil := atomic.LoadInt64(&user.bannedUntil)
+	if bannedUntil > time.Now().UnixNano() {
+		return false
+	}
 
-		if !user.bannedUntil.IsZero() && user.bannedUntil.After(time.Now()) {
+	lastMsgTime := atomic.LoadInt64(&user.lastMsgTime)
+	if time.Since(time.Unix(0, lastMsgTime)) < options.TimeSlice {
+
+		if atomic.LoadInt32(&user.msgCounter) >= int32(options.MaxNumReq) {
+
+			user.Ban(time.Now().Add(options.BanTime))
+
 			return false
 		}
 
-		if time.Since(user.lastMsgTime) < options.TimeSlice*time.Second {
-			if user.msgCounter >= options.MaxNumReq {
-				r.Ban(username, time.Now().Add(options.BanTime*time.Second))
+		user.Add(1)
 
-				return false
-			}
-
-			r.Add(username, 1)
-		} else {
-
-			r.Reset(username)
-		}
+	} else {
+		user.Reset()
 	}
 
 	return true
 }
 
-func (r *ReqCounter) Add(key string, number uint) {
-	r.rw.Lock()
-	defer r.rw.Unlock()
-	r.m[key].msgCounter += number
-}
-
-func (r *ReqCounter) Get(key string) (*UserControl, bool) {
-	r.rw.RLock()
-	defer r.rw.RUnlock()
-	val, ok := r.m[key]
-	return val, ok
-}
-
-func (r *ReqCounter) Set(key string) {
-	r.rw.Lock()
-	defer r.rw.Unlock()
-
-	user := &UserControl{
-		msgCounter:  1,
-		lastMsgTime: time.Now(),
+func (r *ReqCounter) GetOrSet(key string) (*UserControl, bool) {
+	user, loaded := r.m.LoadOrStore(key, &UserControl{
+		msgCounter:  0,
+		lastMsgTime: time.Now().Unix(),
+	})
+	if !loaded {
+		return user.(*UserControl), false
 	}
 
-	r.m[key] = user
+	return user.(*UserControl), true
 }
 
-func (r *ReqCounter) Reset(key string) {
-	r.rw.Lock()
-	defer r.rw.Unlock()
-	r.m[key].msgCounter = 1
-	r.m[key].lastMsgTime = time.Now()
+func (u *UserControl) Add(number uint) {
+	atomic.AddInt32(&u.msgCounter, int32(number))
 }
 
-func (r *ReqCounter) Ban(key string, bannedUntil time.Time) {
-	r.rw.Lock()
-	defer r.rw.Unlock()
-	r.m[key].msgCounter = 0
-	r.m[key].bannedUntil = bannedUntil
+func (u *UserControl) Reset() {
+	atomic.StoreInt32(&u.msgCounter, 1)
+	atomic.StoreInt64(&u.lastMsgTime, time.Now().UnixNano())
+}
+
+func (u *UserControl) Ban(bannedUntil time.Time) {
+	atomic.StoreInt32(&u.msgCounter, 0)
+	atomic.StoreInt64(&u.bannedUntil, bannedUntil.UnixNano())
 }

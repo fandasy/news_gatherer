@@ -26,7 +26,7 @@ func New(fetcher events.Fetcher, processor events.Processor, batchSize int, log 
 	}
 }
 
-func (c Consumer) Start() {
+func (c Consumer) Start(timeout time.Duration) {
 
 	c.log.Info("Consumer started")
 
@@ -39,7 +39,7 @@ func (c Consumer) Start() {
 		}
 
 		if len(gotEvents) == 0 {
-			time.Sleep(1 * time.Second)
+			time.Sleep(timeout)
 
 			if !stopSignal {
 				continue
@@ -71,6 +71,7 @@ func (c *Consumer) handleEvents(ctx context.Context, eventsArr []events.Event) {
 			log := c.log.With(
 				slog.String("event", event.Text),
 			)
+
 			tw := time.Now()
 
 			log.Info("got new event")

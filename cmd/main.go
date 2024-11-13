@@ -26,7 +26,7 @@ func main() {
 		panic(err)
 	}
 
-	cfg, err := j.OpenJsonFiles(flagsObj.JsonFilePath)
+	cfg, err := j.LoadConfig(flagsObj.JsonFilePath)
 	if err != nil {
 		panic(err)
 	}
@@ -45,12 +45,12 @@ func main() {
 		panic(err)
 	}
 
-	reqLimit := req_controller.NewLimitOptions(cfg.MaxNumberReq, cfg.TimeSlice, cfg.BanTime)
+	reqLimit := req_controller.NewLimitOptions(cfg.ReqLimit)
 
 	eventsProcessor := telegram.New(
-		tgClient.New(cfg.TgBotHost, flagsObj.TgToken),
-		vkClient.New(cfg.VkApiHost, cfg.VkApiVersion, flagsObj.VkToken),
-		yaGptClient.New(cfg.YaGptHost, flagsObj.YaGptToken),
+		tgClient.New(cfg.Clients.TgBotHost, flagsObj.TgToken),
+		vkClient.New(cfg.Clients.VkApiHost, cfg.Clients.VkApiVersion, flagsObj.VkToken),
+		yaGptClient.New(cfg.Clients.YaGptHost, flagsObj.YaGptToken),
 		storage,
 		reqLimit,
 		log,
@@ -61,7 +61,7 @@ func main() {
 
 		consumer := eventconsumer.New(eventsProcessor, eventsProcessor, cfg.BatchSize, log)
 
-		consumer.Start()
+		consumer.Start(cfg.UpdateTimeout)
 
 		log.Info("service is stopped")
 	}()
