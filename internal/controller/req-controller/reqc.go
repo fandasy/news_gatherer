@@ -68,8 +68,8 @@ func (r *ReqCounter) Checking(username string, options LimitOptions) bool {
 
 func (r *ReqCounter) GetOrSet(key string) (*UserControl, bool) {
 	user, loaded := r.m.LoadOrStore(key, &UserControl{
-		msgCounter:  0,
-		lastMsgTime: time.Now().Unix(),
+		msgCounter:  1,
+		lastMsgTime: time.Now().UnixNano(),
 	})
 	if !loaded {
 		return user.(*UserControl), false

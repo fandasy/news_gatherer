@@ -1,1 +1,1 @@
-start v2.2.3.exe -config-path config.yaml -tg-bot-token <token> -vk-bot-token <token> -ya-gpt-token <token>
+start v2.2.4.exe -config-path config.yaml -tg-bot-token <token> -vk-bot-token <token> -ya-gpt-token <token>
