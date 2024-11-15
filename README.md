@@ -25,23 +25,26 @@
 env: "local"
 
 clients:
-  tgBotHost: "api.telegram.org"
-  vkApiHost: "api.vk.com"
-  vkApiVersion: "5.131"
-  yaGptHost: "300.ya.ru"
+ - tgBotHost: "api.telegram.org"
+ - vkApiHost: "api.vk.com"
+ - vkApiVersion: "5.131"
+ - yaGptHost: "300.ya.ru"
 
 PSQLConnection: "user=username dbname=dbname password=password host=localhost port=5432 sslmode=disable"
 
 batchSize: 100
-// лимит обновлений Telegram бота, от 1 до 100, по умолчанию 100
+> лимит обновлений Telegram бота, от 1 до 100, по умолчанию 100
 
 updateTimeout: 50ms
-// timeout перед полчением новых данных с tg
+> timeout перед полчением новых данных с tg
 
 reqLimit:
-  maxNumberReq: 5  // кол-во запросов в timeSlice * time.Second
-  timeSlice: 2s    // Промежуток времени (в секундах)
-  banTime: 60s     // Время бана (в секундах)
+ - maxNumberReq: 5
+   - кол-во запросов в timeSlice * time.Second
+ - timeSlice: 2s
+   - Промежуток времени (в секундах)
+ - banTime: 60s
+   - Время бана (в секундах)
 
 Варианты env (Виды логирования)
 - local - text, уровень Debug, вывод в консоль
