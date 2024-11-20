@@ -6,11 +6,11 @@ import (
 	"time"
 )
 
-func testLimitOptions(m uint, t time.Duration, b time.Duration) LimitOptions {
-	return LimitOptions{
-		MaxNumReq: m,
-		TimeSlice: t,
-		BanTime:   b,
+func testLimitOptions(m uint32, t time.Duration, b time.Duration) RateLimit {
+	return RateLimit{
+		limit:    m,
+		interval: t,
+		banTime:  b,
 	}
 }
 
@@ -19,7 +19,7 @@ func TestReqCounter_Checking_SingleUser(t *testing.T) {
 		reqNum    int
 		sleepTime time.Duration
 		username  string
-		options   LimitOptions
+		options   RateLimit
 	}
 	tests := []struct {
 		name string
@@ -50,7 +50,9 @@ func TestReqCounter_Checking_SingleUser(t *testing.T) {
 	for _, tt := range tests {
 
 		t.Run(tt.name, func(t *testing.T) {
-			r := &ReqCounter{}
+			r := &ReqCounter{
+				rl: tt.args.options,
+			}
 
 			var wg sync.WaitGroup
 
@@ -63,7 +65,7 @@ func TestReqCounter_Checking_SingleUser(t *testing.T) {
 				go func() {
 					defer wg.Done()
 
-					ok := r.Checking(tt.args.username, tt.args.options)
+					ok := r.Checking(tt.args.username)
 
 					if !ok {
 						select {
@@ -99,12 +101,13 @@ func TestReqCounter_Checking_ManyUsers(t *testing.T) {
 	}
 	type args struct {
 		users   []user
-		options LimitOptions
+		options RateLimit
 	}
 	tests := []struct {
-		name string
-		args args
-		want bool
+		name              string
+		args              args
+		want              bool
+		number_of_blocked int
 	}{
 		{
 			name: "valid requests",
@@ -144,18 +147,29 @@ func TestReqCounter_Checking_ManyUsers(t *testing.T) {
 				},
 				options: testLimitOptions(1, 2*time.Second, 60*time.Second),
 			},
-			want: false,
+			want:              false,
+			number_of_blocked: 1,
 		},
 	}
 
 	for _, tt := range tests {
 
 		t.Run(tt.name, func(t *testing.T) {
-			r := &ReqCounter{}
+			r := &ReqCounter{
+				rl: tt.args.options,
+			}
 
-			var wg sync.WaitGroup
+			var (
+				wg  sync.WaitGroup
+				buf int
+			)
 
-			result := make(chan bool, 1)
+			for _, user := range tt.args.users {
+				buf += user.reqNum
+			}
+
+			result := make(chan bool, buf)
+
 			for _, user := range tt.args.users {
 				user := user
 
@@ -166,7 +180,7 @@ func TestReqCounter_Checking_ManyUsers(t *testing.T) {
 					go func() {
 						defer wg.Done()
 
-						ok := r.Checking(user.username, tt.args.options)
+						ok := r.Checking(user.username)
 
 						if !ok {
 							select {
@@ -181,15 +195,32 @@ func TestReqCounter_Checking_ManyUsers(t *testing.T) {
 
 			wg.Wait()
 
-			ok := true
+			blocked := make([]bool, 0, buf)
 
-			select {
-			case ok = <-result:
-			default:
+			for i := 0; i < buf; i++ {
+				select {
+				case <-result:
+					blocked = append(blocked, false)
+				default:
+				}
+			}
+
+			var ok bool
+
+			if len(blocked) == 0 {
+				ok = true
 			}
 
 			if ok != tt.want {
 				t.Errorf("Checking() = %v, want %v", ok, tt.want)
+
+				return
+			}
+
+			if ok == false {
+				if len(blocked) != tt.number_of_blocked {
+					t.Errorf("Checking() = %v, want %v", len(blocked), tt.number_of_blocked)
+				}
 			}
 		})
 	}

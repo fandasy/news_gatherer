@@ -4,6 +4,7 @@ import (
 	"context"
 	"github.com/mmcdole/gofeed"
 	"log/slog"
+	"net/http"
 	"net/url"
 	"strings"
 	"telegramBot/internal/lib/logger/sl"
@@ -15,12 +16,35 @@ type ParsedNews struct {
 	NewsUrls string
 }
 
-func ValidateFeedURL(feedURL string) bool {
+func ValidateFeedURL(ctx context.Context, feedURL string) bool {
 	const op = "rss.ValidateFeedURL"
 
 	parsedURL, err := url.Parse(feedURL)
 	if err != nil {
 		slog.Error(op, sl.Err(err))
+		return false
+	}
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, feedURL, nil)
+	if err != nil {
+		slog.Error(op, sl.Err(err))
+		return false
+	}
+
+	req.Close = true
+
+	resp, err := http.DefaultClient.Do(req)
+	if resp != nil {
+		defer resp.Body.Close()
+	}
+
+	if err != nil {
+		slog.Error(op, sl.Err(err))
+		return false
+	}
+
+	if resp.StatusCode != 200 {
+		slog.Info(op, slog.Int("StatusCode", resp.StatusCode))
 		return false
 	}
 

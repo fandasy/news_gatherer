@@ -7,6 +7,7 @@ import (
 	telegram2 "telegramBot/internal/clients/telegram"
 	"telegramBot/internal/clients/vk"
 	"telegramBot/internal/clients/yagpt"
+	"telegramBot/internal/config/j"
 	"telegramBot/internal/controller/req-controller"
 	"telegramBot/internal/events"
 	"telegramBot/internal/storage"
@@ -15,15 +16,14 @@ import (
 )
 
 type Processor struct {
-	tg              *telegram2.Client
-	vk              *vk.Client
-	yaGpt           *yagpt.Client
-	offset          int
-	storage         storage.Storage
-	log             *slog.Logger
-	urlsMap         *shortener.UrlsMap
-	reqCounter      *req_controller.ReqCounter
-	reqLimitOptions req_controller.LimitOptions
+	tg         *telegram2.Client
+	vk         *vk.Client
+	yaGpt      *yagpt.Client
+	offset     int
+	storage    storage.Storage
+	log        *slog.Logger
+	urlsMap    *shortener.UrlsMap
+	reqCounter *req_controller.ReqCounter
 }
 
 type Meta struct {
@@ -43,20 +43,19 @@ func New(
 	vkClient *vk.Client,
 	yaGptClient *yagpt.Client,
 	storage storage.Storage,
-	reqLimitOptions req_controller.LimitOptions,
+	reqLimitOptions j.ReqLimit,
 	log *slog.Logger,
 
 ) *Processor {
 
 	return &Processor{
-		tg:              tgClient,
-		vk:              vkClient,
-		yaGpt:           yaGptClient,
-		storage:         storage,
-		log:             log,
-		urlsMap:         shortener.NewUrlsMap(),
-		reqCounter:      req_controller.New(),
-		reqLimitOptions: reqLimitOptions,
+		tg:         tgClient,
+		vk:         vkClient,
+		yaGpt:      yaGptClient,
+		storage:    storage,
+		log:        log,
+		urlsMap:    shortener.NewUrlsMap(),
+		reqCounter: req_controller.New(reqLimitOptions),
 	}
 }
 

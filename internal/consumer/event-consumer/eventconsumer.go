@@ -13,6 +13,7 @@ type Consumer struct {
 	processor events.Processor
 	batchSize int
 	log       *slog.Logger
+	stopCh    chan struct{}
 }
 
 var stopSignal bool
@@ -23,44 +24,44 @@ func New(fetcher events.Fetcher, processor events.Processor, batchSize int, log 
 		processor: processor,
 		batchSize: batchSize,
 		log:       log,
+		stopCh:    make(chan struct{}),
 	}
 }
 
-func (c Consumer) Start(timeout time.Duration) {
+func (c *Consumer) Start(timeout time.Duration) {
 
 	c.log.Info("Consumer started")
 
 	for {
-		gotEvents, err := c.fetcher.Fetch(context.TODO(), c.batchSize)
-		if err != nil {
-			c.log.Error("[ERR] consumer: %s", sl.Err(err))
+		select {
+		case <-c.stopCh:
 
-			continue
-		}
+			c.log.Info("Consumer stopped")
+			
+			time.Sleep(5 * time.Second)
+			return
 
-		if len(gotEvents) == 0 {
-			time.Sleep(timeout)
+		default:
 
-			if !stopSignal {
+			gotEvents, err := c.fetcher.Fetch(context.TODO(), c.batchSize)
+			if err != nil {
+				c.log.Error("[ERR] consumer: %s", sl.Err(err))
+
 				continue
-			} else {
-				break
 			}
-		}
 
-		c.handleEvents(context.TODO(), gotEvents)
+			if len(gotEvents) == 0 {
+				time.Sleep(timeout)
+			}
 
-		if !stopSignal {
-			continue
-		} else {
-			break
+			c.handleEvents(context.TODO(), gotEvents)
+
 		}
 	}
 }
 
-func Stop() {
-	stopSignal = true
-	time.Sleep(5 * time.Second)
+func (c *Consumer) Stop() {
+	close(c.stopCh)
 }
 
 func (c *Consumer) handleEvents(ctx context.Context, eventsArr []events.Event) {

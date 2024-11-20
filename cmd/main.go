@@ -13,7 +13,6 @@ import (
 	"telegramBot/internal/config/j"
 	"telegramBot/internal/config/s"
 	"telegramBot/internal/consumer/event-consumer"
-	req_controller "telegramBot/internal/controller/req-controller"
 	"telegramBot/internal/events/telegram"
 	"telegramBot/internal/lib/logger/l"
 	"telegramBot/internal/storage/psql"
@@ -45,26 +44,20 @@ func main() {
 		panic(err)
 	}
 
-	reqLimit := req_controller.NewLimitOptions(cfg.ReqLimit)
-
 	eventsProcessor := telegram.New(
 		tgClient.New(cfg.Clients.TgBotHost, flagsObj.TgToken),
 		vkClient.New(cfg.Clients.VkApiHost, cfg.Clients.VkApiVersion, flagsObj.VkToken),
 		yaGptClient.New(cfg.Clients.YaGptHost, flagsObj.YaGptToken),
 		storage,
-		reqLimit,
+		cfg.ReqLimit,
 		log,
 	)
 
-	go func() {
-		log.Info("service started")
+	consumer := eventconsumer.New(eventsProcessor, eventsProcessor, cfg.BatchSize, log)
 
-		consumer := eventconsumer.New(eventsProcessor, eventsProcessor, cfg.BatchSize, log)
+	log.Info("service started")
 
-		consumer.Start(cfg.UpdateTimeout)
-
-		log.Info("service is stopped")
-	}()
+	go consumer.Start(cfg.UpdateTimeout)
 
 	// Program Completion
 	stop := make(chan os.Signal, 1)
@@ -73,5 +66,5 @@ func main() {
 	sign := <-stop
 	log.Info("service stopping", slog.Any("sys signal", sign))
 
-	eventconsumer.Stop()
+	consumer.Stop()
 }

@@ -9,50 +9,54 @@ import (
 )
 
 type ReqCounter struct {
-	m sync.Map
+	m  sync.Map
+	rl RateLimit
 }
 
 type UserControl struct {
-	msgCounter  int32
-	lastMsgTime int64 // хранить время в наносекундах
-	bannedUntil int64 // хранить время в наносекундах
+	msgCounter  uint32
+	lastMsgTime uint64 // хранить время в наносекундах
+	bannedUntil uint64 // хранить время в наносекундах
 }
 
-type LimitOptions struct {
-	MaxNumReq uint
-	TimeSlice time.Duration
-	BanTime   time.Duration
+type RateLimit struct {
+	limit    uint32
+	interval time.Duration
+	banTime  time.Duration
 }
 
-func NewLimitOptions(limit j.ReqLimit) LimitOptions {
-	return LimitOptions{
-		MaxNumReq: limit.MaxNumberReq,
-		TimeSlice: limit.TimeSlice,
-		BanTime:   limit.BanTime,
+func New(limit j.ReqLimit) *ReqCounter {
+	return &ReqCounter{
+		rl: RateLimit{
+			limit:    limit.MaxNumberReq,
+			interval: limit.TimeSlice,
+			banTime:  limit.BanTime,
+		},
 	}
 }
 
-func New() *ReqCounter {
-	return &ReqCounter{}
-}
-
-func (r *ReqCounter) Checking(username string, options LimitOptions) bool {
-	user, ok := r.GetOrSet(username)
-	if !ok {
+func (rc *ReqCounter) Checking(username string) bool {
+	userInfo, loaded := rc.m.LoadOrStore(username, &UserControl{
+		msgCounter:  1,
+		lastMsgTime: uint64(time.Now().UnixNano()),
+	})
+	if !loaded {
 		return true
 	}
 
-	bannedUntil := atomic.LoadInt64(&user.bannedUntil)
-	if bannedUntil > time.Now().UnixNano() {
+	user := userInfo.(*UserControl)
+
+	bannedUntil := atomic.LoadUint64(&user.bannedUntil)
+	if bannedUntil > uint64(time.Now().UnixNano()) {
 		return false
 	}
 
-	lastMsgTime := atomic.LoadInt64(&user.lastMsgTime)
-	if time.Since(time.Unix(0, lastMsgTime)) < options.TimeSlice {
+	lastMsgTime := atomic.LoadUint64(&user.lastMsgTime)
+	if time.Since(time.Unix(0, int64(lastMsgTime))) < rc.rl.interval {
 
-		if atomic.LoadInt32(&user.msgCounter) >= int32(options.MaxNumReq) {
+		if atomic.LoadUint32(&user.msgCounter) >= rc.rl.limit {
 
-			user.Ban(time.Now().Add(options.BanTime))
+			user.Ban(time.Now().Add(rc.rl.banTime))
 
 			return false
 		}
@@ -66,28 +70,16 @@ func (r *ReqCounter) Checking(username string, options LimitOptions) bool {
 	return true
 }
 
-func (r *ReqCounter) GetOrSet(key string) (*UserControl, bool) {
-	user, loaded := r.m.LoadOrStore(key, &UserControl{
-		msgCounter:  1,
-		lastMsgTime: time.Now().UnixNano(),
-	})
-	if !loaded {
-		return user.(*UserControl), false
-	}
-
-	return user.(*UserControl), true
-}
-
-func (u *UserControl) Add(number uint) {
-	atomic.AddInt32(&u.msgCounter, int32(number))
+func (u *UserControl) Add(number uint32) {
+	atomic.AddUint32(&u.msgCounter, number)
 }
 
 func (u *UserControl) Reset() {
-	atomic.StoreInt32(&u.msgCounter, 1)
-	atomic.StoreInt64(&u.lastMsgTime, time.Now().UnixNano())
+	atomic.StoreUint32(&u.msgCounter, 1)
+	atomic.StoreUint64(&u.lastMsgTime, uint64(time.Now().UnixNano()))
 }
 
 func (u *UserControl) Ban(bannedUntil time.Time) {
-	atomic.StoreInt32(&u.msgCounter, 0)
-	atomic.StoreInt64(&u.bannedUntil, bannedUntil.UnixNano())
+	atomic.StoreUint32(&u.msgCounter, 0)
+	atomic.StoreUint64(&u.bannedUntil, uint64(bannedUntil.UnixNano()))
 }

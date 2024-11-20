@@ -36,7 +36,7 @@ func (p *Processor) doCmd(ctx context.Context, text string, meta Meta) error {
 
 	// callback идёт от имени бота, из-за чего его обработку пропускаю
 	if callbackID == "" {
-		if ok := p.reqCounter.Checking(username, p.reqLimitOptions); !ok {
+		if ok := p.reqCounter.Checking(username); !ok {
 			return p.tg.SendMessageText(ctx, chatID, msgThrowingTooManyRequests)
 		}
 	}
@@ -96,7 +96,7 @@ func (p *Processor) defineAssembler(ctx context.Context, chatID int, pageURL str
 			return p.tg.SendMessageText(ctx, chatID, msgNotValidateGroup)
 		}
 
-	case rss.ValidateFeedURL(pageURL):
+	case rss.ValidateFeedURL(ctx, pageURL):
 		return p.savePage(ctx, chatID, pageURL, username, "RSS")
 
 	default:
@@ -304,7 +304,7 @@ func (p *Processor) getConcreteNews(ctx context.Context, chatID int, username st
 			return e.Wrap(op, err)
 		}
 
-	case rss.ValidateFeedURL(filter):
+	case rss.ValidateFeedURL(ctx, filter):
 
 		newsFeedInfo := storage.News{
 			URL:       filter,

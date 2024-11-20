@@ -25,7 +25,7 @@ type Clients struct {
 }
 
 type ReqLimit struct {
-	MaxNumberReq uint          `yaml:"maxNumberReq"`
+	MaxNumberReq uint32        `yaml:"maxNumberReq"`
 	TimeSlice    time.Duration `yaml:"timeSlice"`
 	BanTime      time.Duration `yaml:"banTime"`
 }
