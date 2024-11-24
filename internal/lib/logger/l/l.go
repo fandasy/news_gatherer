@@ -1,11 +1,8 @@
 package l
 
 import (
-	"fmt"
 	"log/slog"
 	"os"
-	"strings"
-	"time"
 )
 
 const (
@@ -23,20 +20,12 @@ func LoggingStart(env string) (*slog.Logger, error) {
 			slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelDebug}),
 		)
 	case envDev:
-		file, err := createLogFile()
-		if err != nil {
-			return nil, err
-		}
 		log = slog.New(
-			slog.NewJSONHandler(file, &slog.HandlerOptions{Level: slog.LevelDebug}),
+			slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelDebug}),
 		)
 	case envProd:
-		file, err := createLogFile()
-		if err != nil {
-			return nil, err
-		}
 		log = slog.New(
-			slog.NewJSONHandler(file, &slog.HandlerOptions{Level: slog.LevelInfo}),
+			slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelInfo}),
 		)
 	default:
 		log = slog.Default()
@@ -45,6 +34,7 @@ func LoggingStart(env string) (*slog.Logger, error) {
 	return log, nil
 }
 
+/*
 func createLogFile() (*os.File, error) {
 	logDir := "logs"
 
@@ -64,3 +54,4 @@ func createLogFile() (*os.File, error) {
 
 	return file, nil
 }
+*/

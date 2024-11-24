@@ -1,7 +1,12 @@
-### Приветствие
+Приветствие
+---
+
 Привет, читатель. Это мой первый проект, связанный с телеграм-ботом, предполагаться что этот проект будет использоваться как шаблон для чего то более полезного : )
 
-### Функционал:
+
+Функционал
+---
+
 - Проводит валидацию всех кинутых в чат ссылок, и сохраняет их если они её прошли
 - Вывод всех сохранённых ссылок на новостные медиа
 - Удаление ссылок
@@ -12,15 +17,36 @@
 
 В данной версии поддерживаются только VK и RSS новостные ленты
 
+Запуск
 ---
-### Как запустить мой проект: файл _exe содержит всё необходимое для запуска
 
-- config.yaml — данные для подключения к базе данных, получения API VK, API Telegram и указания лимита обновлений для Telegram бота
-- app.exe - приложение
-- run.bat - для удобства (не забудьте поменять <token>)
+Для запуска tg bot можно использовать docker-compose файл, с заранее настроенным config.yaml
 
+Требования: Docker, tg token, vk token, yaGpt token
+
+- tg token: [@BotFather](https://telegram.me/BotFather)
+
+- vk token: [dev VK](https://dev.vk.com/ru), создаёте приложение и получаете Сервисный ключ доступа
+
+- yaGpt token [300.ya.ru](https://300.ya.ru/?nr=1#), в нижней части нажимаете на API, после кнопку Получить токен
+
+Перейдите в директорию проекта и впишите в поля свои токены:
+
+Example
+```
+TG_TOKEN=0123456789:AAA0AA0AAA0Aa0AaAaaa00aA0aaaAAaaaA0 
+VK_TOKEN=0a00000a0a00000a0a00000a000a00a00a00a000a00000a000a0000aa00000000000aa0  
+YA_GPT_TOKEN=y0_AAAAAAA_AAaAAAaA0aAAAAAAAAaaAAAaaAAaAa00aaAAaAaAaaaaAAa0aA
+```
+
+После пропишите в консоли
+
+```
+docker-compose up --build
+```
+
+YAML
 ---
-### YAML
 
 ```
 env: "local"
@@ -44,20 +70,9 @@ reqLimit:
 ```
 
 В зависимости от env запускаются типы логирования:
-- local - text, уровень Debug, вывод в консоль
-- dev   - json, уровень Debug, вывод в файл
-- prod  - json, уровень Info, вывод в файл
-
----
-### Для запуска бота существует два варианта:
-- Запустить в консоли с флагами: -config-path, -tg-bot-token, -vk-bot-token, -ya-gpt-token
-- Использовать переменные среды: CONFIG_PATH, TG_TOKEN, VK_TOKEN, YA_GPT_TOKEN
-
 
 ```
-start name.exe -config-path data.json -tg-bot-token <token> -vk-bot-token <token> -ya-gpt-token <token>
-
-// Example
-
-start v2.0.1.exe -config-path data.json -tg-bot-token 0123456789:AAA0AA0AAA0Aa0AaAaaa00aA0aaaAAaaaA0 -vk-bot-token 0a00000a0a00000a0a00000a000a00a00a00a000a00000a000a0000aa00000000000aa0  -ya-gpt-token y0_AAAAAAA_AAaAAAaA0aAAAAAAAAaaAAAaaAAaAa00aaAAaAaAaaaaAAa0aA
+- local - text уровень Debug вывод в консоль
+- dev   - json уровень Debug вывод в файл
+- prod  - json уровень Info  вывод в файл
 ```

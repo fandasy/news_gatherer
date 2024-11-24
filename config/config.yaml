@@ -1,0 +1,18 @@
+env: "prod"
+
+clients:
+  tgBotHost: "api.telegram.org"
+  vkApiHost: "api.vk.com"
+  vkApiVersion: "5.131"
+  yaGptHost: "300.ya.ru"
+
+PSQLConnection: "user=myuser dbname=postgres password=mypassword host=postgres port=5432 sslmode=disable"
+
+batchSize: 100
+
+updateTimeout: 50ms
+
+reqLimit:
+  maxNumberReq: 5
+  timeSlice: 2s
+  banTime: 60s
